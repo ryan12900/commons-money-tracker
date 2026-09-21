@@ -7,8 +7,11 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from money_tracker import (
-    classify, import_csv, snapshot_net_worth, net_worth_over_time,
-    BudgetPlanner, build_dashboard,
+    Transaction,
+    classify, all_paths, import_csv, merge_transactions,
+    is_transfer, map_provider_category, split_transfers,
+    snapshot_net_worth, net_worth_over_time, save_snapshots, load_snapshots,
+    BudgetPlanner, default_limits, build_dashboard,
 )
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -24,7 +27,7 @@ def test_taxonomy():
 
 def test_importer():
     txns, errors = import_csv(CSV)
-    assert len(txns) == 11, f"expected 11 rows, got {len(txns)}"
+    assert len(txns) == 13, f"expected 13 rows, got {len(txns)}"
     # one row has a blank category -> Uncategorized
     assert any(t.category == "Uncategorized/Uncategorized" for t in txns)
     # no bad-amount rows in the fixture
@@ -59,9 +62,55 @@ def test_dashboard():
     snapshots = [snapshot_net_worth("2026-09-01", {"a": 100.0}, {"l": 30.0})]
     payload = build_dashboard(txns, snapshots, {})
     assert payload["summary"]["transaction_count"] == 11
+    assert payload["summary"]["transfer_count"] == 2
     assert payload["spend_by_category"]["Housing/Rent"] == 1800.0
     assert payload["net_worth_history"] == [("2026-09-01", 70.0)]
     json.dumps(payload)  # must be JSON-serializable
+
+
+def test_transfers():
+    assert is_transfer("Demo Credit Card Payment")
+    assert is_transfer("AUTOPAY - Demo Card")
+    assert is_transfer("Savings Xfer")
+    assert not is_transfer("Whole Foods Market")
+    txns = [
+        Transaction("2026-09-01", "Whole Foods", -10.0, "Food/Groceries"),
+        Transaction("2026-09-02", "Demo Transfer", -50.0, "Uncategorized/Uncategorized"),
+    ]
+    real, xfers = split_transfers(txns)
+    assert len(real) == 1 and len(xfers) == 1
+    mapping = {"PFC_XFER": ("Finance/Fees", True)}
+    assert map_provider_category("PFC_XFER", mapping) == ("Finance/Fees", True)
+    assert map_provider_category("NOPE", mapping) == ("Uncategorized/Uncategorized", False)
+    # invalid taxonomy path is demoted, transfer flag kept
+    assert map_provider_category("BAD", {"BAD": ("Nope/Nope", True)}) == (
+        "Uncategorized/Uncategorized", True)
+
+
+def test_merge():
+    a = Transaction("2026-09-01", "Whole Foods", -10.0, "Food/Groceries", "demo-card")
+    dup = Transaction("2026-09-01", "whole foods ", -10.0, "Food/Groceries", "DEMO-CARD")
+    new = Transaction("2026-09-02", "Uber", -20.0, "Transport/Rideshare", "demo-card")
+    merged, added = merge_transactions([a], [dup, new])
+    assert added == 1 and len(merged) == 2 and merged[1] is new
+
+
+def test_snapshot_store():
+    import tempfile
+    snaps = [snapshot_net_worth("2026-09-01", {"a": 100.0}, {"l": 30.0})]
+    with tempfile.TemporaryDirectory() as d:
+        p = os.path.join(d, "snaps.json")
+        assert load_snapshots(p) == []
+        save_snapshots(p, snaps)
+        loaded = load_snapshots(p)
+        assert len(loaded) == 1
+        assert loaded[0].as_of == "2026-09-01" and loaded[0].net_worth == 70.0
+
+
+def test_default_limits():
+    lims = default_limits()
+    assert lims["Food/Groceries"] > 0 and lims["Housing/Rent"] > 0
+    assert set(lims) <= set(all_paths())
 
 
 if __name__ == "__main__":
@@ -70,4 +119,8 @@ if __name__ == "__main__":
     test_net_worth()
     test_budget()
     test_dashboard()
+    test_transfers()
+    test_merge()
+    test_snapshot_store()
+    test_default_limits()
     print("all tests passed")
