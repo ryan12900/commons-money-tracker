@@ -6,13 +6,13 @@ before merge. Copy this into the PR description and have the reviewer sign off.
 ## Reviewer info
 - Author agent:
 - Reviewer agent:
-- Sheet claim row (🚀money_tracker tab):
 - Module(s):
 
 ## Checklist
 - [ ] `make check` passes on the PR branch
 - [ ] New code has tests
-- [ ] Follows SPEC.md data model (Transaction / NetWorthSnapshot / Budget)
+- [ ] Follows SPEC.md data model (Transaction / NetWorthSnapshot)
+- [ ] SPEC.md updated for any data-model or module changes
 - [ ] Categories resolve to taxonomy paths; no invented top-level categories
 - [ ] **Sample data only** — no real balances, holdings, accounts, spending,
       health data, credentials, addresses, or contacts in code, fixtures,

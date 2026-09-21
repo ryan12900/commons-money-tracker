@@ -1,6 +1,9 @@
-.PHONY: check demo
+.PHONY: check lint demo
 
-check:
+lint:
+	python3 -m py_compile money_tracker/*.py tests/*.py demo.py sample_data/*.py
+
+check: lint
 	python3 tests/test_core.py
 
 demo:
