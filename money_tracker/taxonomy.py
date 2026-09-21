@@ -5,6 +5,8 @@ Unknown descriptions classify to 'Uncategorized', never guessed.
 Renames go through spec review (M7).
 """
 
+import re
+
 CATEGORIES = {
     "Food": ["Groceries", "Dining Out", "Coffee", "Delivery"],
     "Housing": ["Rent", "Utilities", "Internet", "Maintenance"],
@@ -38,9 +40,15 @@ def all_paths() -> list:
 
 
 def classify(description: str) -> str:
-    """Best-effort keyword match. Returns 'Uncategorized/Uncategorized' when unsure."""
-    text = description.lower()
+    """Best-effort keyword match on a leading word boundary.
+
+    Returns 'Uncategorized/Uncategorized' when unsure — never guessed.
+    The leading boundary stops mid-word false positives: 'Different Store'
+    does NOT match the 'rent' keyword, while 'Rent - 5th Ave' and
+    'Con Edison' (prefix of the 'con ed' keyword) still do.
+    """
+    text = (description or "").lower()
     for path, keywords in _KEYWORDS.items():
-        if any(k in text for k in keywords):
+        if any(re.search(rf"\b{re.escape(k)}", text) for k in keywords):
             return path
     return "Uncategorized/Uncategorized"
