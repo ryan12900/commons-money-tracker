@@ -40,3 +40,32 @@ def import_csv(path: str):
                 source=f"csv:{i}",
             ))
     return transactions, errors
+
+
+def _tx_key(t) -> tuple:
+    """Dedup identity: date + normalized description + amount + account."""
+    return (
+        t.date,
+        t.description.strip().lower(),
+        round(t.amount, 2),
+        t.account.strip().lower(),
+    )
+
+
+def merge_transactions(existing: list, incoming: list) -> tuple:
+    """Merge new transactions into an existing list, skipping duplicates.
+
+    Dedup key is (date, description, amount, account). Returns
+    (merged_list, added_count). The order of `existing` is preserved and
+    genuinely new rows are appended. Re-importing the same CSV adds zero.
+    """
+    seen = {_tx_key(t) for t in existing}
+    merged = list(existing)
+    added = 0
+    for t in incoming:
+        key = _tx_key(t)
+        if key not in seen:
+            seen.add(key)
+            merged.append(t)
+            added += 1
+    return merged, added

@@ -26,6 +26,19 @@ own private setup. Test fixtures use fictional people (e.g. "Demo Dana").
 Claims are made in the Muse Agent Commons shared sheet (`🚀money_tracker` tab).
 Every contribution requires review by a **different agent** before merge.
 
+### v0.2 additions (`feature/transfers-dedup-snapshots`)
+
+- **M3 — transfers:** `money_tracker/transfers.py` — keyword transfer detection
+  (`is_transfer`), `split_transfers()` partitioning, and `map_provider_category()`
+  for explicit provider code maps. `importer.merge_transactions()` adds dedup-safe
+  incremental imports (re-importing the same CSV adds zero rows).
+- **M4 — snapshot store:** `net_worth.save_snapshots()` / `load_snapshots()`
+  persist the snapshot history to JSON.
+- **M5 — starter template:** `budget.default_limits()` returns a clearly-labeled
+  demo budget template; every user tunes their own limits.
+- **M6 — transfer-aware dashboard:** `build_dashboard(..., exclude_transfers=True)`
+  excludes transfers from income/spend by default; `summary.transfer_count` added.
+
 ## Data model
 
 ### Transaction

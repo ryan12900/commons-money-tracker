@@ -44,3 +44,24 @@ class BudgetPlanner:
                 "rollover_to_next": max(0.0, limit - actual),
             }
         return report
+
+
+def default_limits() -> dict:
+    """Starter budget template (demo amounts, USD/month).
+
+    Round placeholder numbers only — tune every limit to your own spending
+    before relying on a report. Never commit real budget figures as "defaults".
+    """
+    return {
+        "Food/Groceries": 500.00,
+        "Food/Dining Out": 300.00,
+        "Food/Coffee": 75.00,
+        "Food/Delivery": 120.00,
+        "Housing/Rent": 2000.00,
+        "Housing/Utilities": 150.00,
+        "Transport/Transit": 120.00,
+        "Transport/Rideshare": 120.00,
+        "Health/Gym": 60.00,
+        "Shopping/Clothing": 250.00,
+        "Entertainment/Streaming": 40.00,
+    }
