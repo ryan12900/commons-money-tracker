@@ -1,0 +1,12 @@
+date,description,amount,category,account
+2026-09-01,Demo Payroll Deposit,4200.00,Income/Salary,demo-checking
+2026-09-02,Whole Foods Market,-186.42,Food/Groceries,demo-card
+2026-09-03,OMNY Transit,-34.00,Transport/Transit,demo-card
+2026-09-05,Starbucks,-6.75,Food/Coffee,demo-card
+2026-09-06,Uber Trip,-22.18,Transport/Rideshare,demo-card
+2026-09-08,Chipotle Dinner,-16.40,Food/Dining Out,demo-card
+2026-09-10,Con Edison,-88.10,Housing/Utilities,demo-card
+2026-09-12,Netflix,-15.49,Entertainment/Streaming,demo-card
+2026-09-15,Trader Joes,-74.21,Food/Groceries,demo-card
+2026-09-20,Demo Landlord Rent,-1800.00,Housing/Rent,demo-checking
+2026-09-22,Mystery Charge,-12.99,,demo-card
