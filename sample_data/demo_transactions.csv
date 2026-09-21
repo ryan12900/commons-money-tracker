@@ -10,3 +10,5 @@ date,description,amount,category,account
 2026-09-15,Trader Joes,-74.21,Food/Groceries,demo-card
 2026-09-20,Demo Landlord Rent,-1800.00,Housing/Rent,demo-checking
 2026-09-22,Mystery Charge,-12.99,,demo-card
+2026-09-16,Demo Credit Card Payment,-1500.00,,demo-checking
+2026-09-18,Demo Savings Transfer,-500.00,,demo-checking
