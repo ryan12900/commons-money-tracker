@@ -1,8 +1,11 @@
 """M4 — Net-worth snapshots: point-in-time assets minus liabilities."""
+
 import json
 import os
 from decimal import Decimal
+
 from money_tracker.models import NetWorthSnapshot
+
 
 def snapshot_net_worth(as_of: str, assets: dict, liabilities: dict) -> NetWorthSnapshot:
     """Build one snapshot. Labels are free text, amounts signed."""
@@ -12,13 +15,16 @@ def snapshot_net_worth(as_of: str, assets: dict, liabilities: dict) -> NetWorthS
         liabilities=dict(liabilities),
     )
 
+
 def net_worth_over_time(snapshots: list) -> list:
     """Sorted (as_of, net_worth) series for the dashboard."""
     ordered = sorted(snapshots, key=lambda s: s.as_of)
     return [(s.as_of, s.net_worth) for s in ordered]
 
+
 def save_snapshots(path: str, snapshots: list) -> None:
     """Persist snapshots to a JSON file: [{as_of, assets, liabilities}].
+
     Sample/demo data only — never write real balances here.
     """
     payload = [
@@ -31,6 +37,7 @@ def save_snapshots(path: str, snapshots: list) -> None:
     ]
     with open(path, "w") as f:
         json.dump(payload, f, indent=2)
+
 
 def load_snapshots(path: str) -> list:
     """Load snapshots saved by save_snapshots. Returns [] if the file is absent."""
@@ -46,6 +53,7 @@ def load_snapshots(path: str) -> list:
         )
         for p in payload
     ]
+
 
 ASSET_CLASSES = ("cash", "investments", "retirement", "real_estate", "crypto", "other")
 LIABILITY_CLASSES = ("credit_cards", "mortgage", "student_loans", "auto_loans", "other")
@@ -69,6 +77,7 @@ _LIABILITY_KEYWORDS = {
     "auto_loans": ("auto", "vehicle", "car loan", "car-loan"),
 }
 
+
 def _classify(label: str, keyword_map: dict, classes: tuple) -> str:
     lowered = label.lower()
     for cls in classes:
@@ -76,20 +85,25 @@ def _classify(label: str, keyword_map: dict, classes: tuple) -> str:
             return cls
     return "other"
 
+
 def classify_asset(label: str) -> str:
     """Asset class for an account label, one of ASSET_CLASSES."""
     return _classify(label, _ASSET_KEYWORDS, ASSET_CLASSES)
+
 
 def classify_liability(label: str) -> str:
     """Liability class for an account label, one of LIABILITY_CLASSES."""
     return _classify(label, _LIABILITY_KEYWORDS, LIABILITY_CLASSES)
 
+
 def net_worth_breakdown(snapshot: NetWorthSnapshot) -> dict:
     """Class-by-class breakdown of one snapshot.
+
     Returns {"assets": {class: Decimal}, "liabilities": {class: Decimal},
     "asset_share_pct": {class: float}, "liability_share_pct": {class: float},
     "total_assets": Decimal, "total_liabilities": Decimal,
     "net_worth": Decimal}.
+
     Shares are each class's percentage of total assets / total liabilities
     (0.0 when that side is empty — no division by zero). Classification is a
     label convention: name accounts so the class shows up, e.g.
