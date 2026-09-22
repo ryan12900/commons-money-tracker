@@ -2,35 +2,26 @@
 
 Transfers (see money_tracker/transfers.py) are excluded from income/spend by
 default so inter-account moves don't inflate both sides of the summary.
-
-Each spend category is drillable: `transactions_by_category` lists every
-underlying purchase (date, merchant, location, items, amount) so a category
-total can be expanded into the transactions behind it. The `recurring`
-section flags subscriptions and other fixed obligations detected by
-money_tracker/recurring; `payroll` flags biweekly income deposits
-(money_tracker/payroll); `credit_card_balances` breaks out card balances
-from the latest snapshot.
 """
 
 from __future__ import annotations
-from decimal import Decimal
 
 from money_tracker.models import Transaction
-from money_tracker.net_worth import credit_card_balances, net_worth_over_time
-from money_tracker.payroll import detect_payroll
-from money_tracker.recurring import detect_recurring
+from money_tracker.net_worth import net_worth_breakdown, net_worth_over_time
 from money_tracker.transfers import split_transfers
 
 
-def _json_money(value):
-    """Convert Decimal to a 2dp float for JSON output; pass other values through."""
-    if isinstance(value, Decimal):
-        return float(value.quantize(Decimal("0.01")))
-    if isinstance(value, dict):
-        return {k: _json_money(v) for k, v in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_json_money(v) for v in value]
-    return value
+def _breakdown_floats(bd: dict) -> dict:
+    """Decimal breakdown -> JSON-safe floats, in this module's round(x, 2) style."""
+    return {
+        "assets": {k: round(float(v), 2) for k, v in bd["assets"].items()},
+        "liabilities": {k: round(float(v), 2) for k, v in bd["liabilities"].items()},
+        "asset_share_pct": {k: round(v, 2) for k, v in bd["asset_share_pct"].items()},
+        "liability_share_pct": {k: round(v, 2) for k, v in bd["liability_share_pct"].items()},
+        "total_assets": round(float(bd["total_assets"]), 2),
+        "total_liabilities": round(float(bd["total_liabilities"]), 2),
+        "net_worth": round(float(bd["net_worth"]), 2),
+    }
 
 
 def build_dashboard(
@@ -49,44 +40,26 @@ def build_dashboard(
     spend = [t for t in real if t.amount < 0]
     income = [t for t in real if t.amount > 0]
 
-    by_category: dict[str, Decimal] = {}
-    tx_by_category: dict[str, list] = {}
+    by_category: dict[str, float] = {}
     for t in spend:
-        by_category[t.category] = by_category.get(t.category, Decimal("0")) + abs(t.amount)
-        tx_by_category.setdefault(t.category, []).append({
-            "date": t.date,
-            "description": t.description,
-            "merchant": t.merchant,
-            "location": t.location,
-            "items": list(t.items),
-            "amount": _json_money(t.amount),
-            "account": t.account,
-        })
-
-    latest_snapshot = max(snapshots, key=lambda s: s.as_of) if snapshots else None
+        by_category[t.category] = by_category.get(t.category, 0.0) + abs(t.amount)
 
     return {
         "summary": {
-            "total_income": _json_money(sum((t.amount for t in income), Decimal("0"))),
-            "total_spend": _json_money(sum((abs(t.amount) for t in spend), Decimal("0"))),
-            "net_flow": _json_money(sum((t.amount for t in real), Decimal("0"))),
+            "total_income": round(sum(t.amount for t in income), 2),
+            "total_spend": round(sum(abs(t.amount) for t in spend), 2),
+            "net_flow": round(sum(t.amount for t in real), 2),
             "transaction_count": len(real),
             "transfer_count": transfer_count,
         },
         "spend_by_category": {
-            k: _json_money(v) for k, v in
+            k: round(v, 2) for k, v in
             sorted(by_category.items(), key=lambda kv: kv[1], reverse=True)
         },
-        # drill-down: every purchase behind each category total
-        "transactions_by_category": tx_by_category,
-        # subscriptions / fixed obligations (see money_tracker/recurring.py)
-        "recurring": _json_money(detect_recurring(real)),
-        # biweekly payroll deposits (see money_tracker/payroll.py)
-        "payroll": _json_money(detect_payroll(real)),
-        # balances by credit card, from the latest snapshot
-        "credit_card_balances": _json_money(
-            credit_card_balances(latest_snapshot)
-        ) if latest_snapshot else {"cards": {}, "total": 0.0},
         "net_worth_history": net_worth_over_time(snapshots),
-        "budget": _json_money(budget_report),
+        # class-by-class net-worth breakdown for the latest snapshot
+        "net_worth_breakdown": _breakdown_floats(
+            net_worth_breakdown(max(snapshots, key=lambda s: s.as_of))
+        ) if snapshots else {},
+        "budget": budget_report,
     }
