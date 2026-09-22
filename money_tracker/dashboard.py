@@ -38,8 +38,16 @@ def build_dashboard(
     snapshots: list,
     budget_report: dict,
     exclude_transfers: bool = True,
+    data_source: str = "sample",
 ) -> dict:
-    """Assemble the unified money dashboard payload."""
+    """Assemble the unified money dashboard payload.
+
+    `data_source` labels where the input data came from ("sample" by
+    default; "plaid"/"coinbase" when a live-local adapter fed the inputs).
+    It is a label only — the caller is responsible for sourcing the
+    transactions/snapshots from the matching adapter (see
+    money_tracker/data_source.get_adapter).
+    """
     real = transactions
     transfer_count = 0
     if exclude_transfers:
@@ -66,6 +74,9 @@ def build_dashboard(
     latest_snapshot = max(snapshots, key=lambda s: s.as_of) if snapshots else None
 
     return {
+        # where the input data came from: "sample" (default) or a live-local
+        # adapter id such as "plaid"/"coinbase" (see data_source.py)
+        "data_source": data_source,
         "summary": {
             "total_income": _json_money(sum((t.amount for t in income), Decimal("0"))),
             "total_spend": _json_money(sum((abs(t.amount) for t in spend), Decimal("0"))),

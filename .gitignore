@@ -2,3 +2,14 @@ __pycache__/
 *.pyc
 .env
 .DS_Store
+
+# T-OP-5: local-only data-source config + live-data artifacts.
+# Never commit real balances, credentials, or anything downloaded from a
+# live adapter — these stay on the user's own machine.
+local_config.json
+local_config.yaml
+local_config.yml
+money-tracker-local*.json
+.commons-money-tracker/
+*-live.json
+*-live.csv

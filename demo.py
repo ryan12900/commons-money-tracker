@@ -1,5 +1,9 @@
-"""Demo run: import demo CSV, apply budgets, build dashboard. Sample data only."""
+"""Demo run: import demo CSV, apply budgets, build dashboard. Sample data only
+unless --data-source names a live-local adapter (plaid/coinbase), which then
+loads from the user's local gitignored config + env-var credentials only."""
 
+import argparse
+import datetime
 import json
 import os
 import sys
@@ -11,7 +15,7 @@ from money_tracker import (
     snapshot_net_worth, save_snapshots, load_snapshots,
     credit_card_balances, BudgetPlanner, default_limits,
     detect_payroll, payroll_ytd, TransferLedger, build_ledger,
-    build_dashboard,
+    build_dashboard, get_adapter, AdapterError,
 )
 from sample_data.demo_snapshots import SNAPSHOTS
 
@@ -19,7 +23,45 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 CSV = os.path.join(HERE, "sample_data", "demo_transactions.csv")
 
 
+def live_run(source: str):
+    """Dashboard from a live-local adapter. Credentials come from env vars
+    only; the adapter choice comes from the local gitignored config. Never
+    writes live data anywhere — prints the dashboard payload to stdout."""
+    try:
+        adapter = get_adapter(source)
+    except AdapterError as e:
+        print(f"live data source unavailable: {e}")
+        print("Falling back to sample data is the safe default — "
+              "configure env vars and ~/.commons-money-tracker/config.json "
+              "to use a live adapter.")
+        sys.exit(2)
+    print(f"data source: {adapter.name} (live-local, read-only)")
+    transactions = adapter.get_transactions()
+    balances = adapter.get_balances()
+    holdings = adapter.get_holdings()
+    snapshot = adapter.as_snapshot(datetime.date.today().isoformat())
+    print(f"live balances: {len(balances)} accounts, "
+          f"holdings: {len(holdings)}, transactions: {len(transactions)}")
+    planner = BudgetPlanner()
+    planner.add_transactions(transactions)
+    dashboard = build_dashboard(transactions, [snapshot], {},
+                                data_source=adapter.source_id)
+    print(json.dumps(dashboard, indent=2))
+
+
 def main():
+    parser = argparse.ArgumentParser(description="Commons money tracker demo")
+    parser.add_argument(
+        "--data-source", default="sample",
+        choices=["sample", "plaid", "coinbase"],
+        help="data source for the dashboard (default: sample; live sources "
+             "need env-var credentials and a local config — never committed)",
+    )
+    args = parser.parse_args()
+    if args.data_source != "sample":
+        live_run(args.data_source)
+        return
+
     transactions, errors = import_csv(CSV)
     if errors:
         print("import errors:", errors)

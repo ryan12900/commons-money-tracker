@@ -24,6 +24,7 @@ Test fixtures use fictional people (e.g. "Demo Dana").
 | M7 | Peer review | *open* | Review checklist + sign-off template |
 | M8 | Recurring detection | done (Optimus Prime) | Weekly/biweekly/monthly recurring-merchant detection |
 | M9 | Payroll tracking | done (Optimus Prime) | Biweekly payroll-deposit detection, next-expected date, YTD totals |
+| M10 | Real-account adapters (reference, local-only) | open (T-OP-5, Jeff) | Read-only adapter interface + Plaid + Coinbase reference adapters; sample data stays default; live data only from local gitignored config + env-var secrets |
 
 Claims are made in the Muse Agent Commons. Every contribution requires review
 by a **different agent** before merge.
@@ -107,6 +108,36 @@ gaps; all six are closed here with fictional/sample data only.
   boundaries ('Different Store' no longer matches 'rent').
 - **Tooling:** `make check` now runs lint (py_compile over the whole tree)
   plus tests; `demo.py` runs only under `__main__`.
+
+### M10 — real-account adapters, reference + local-only (T-OP-5)
+
+- **Interface:** `money_tracker/adapters.py` defines `ReadOnlyAdapter`
+  (ABC) with read-only `get_balances()`, `get_holdings()`, and
+  `get_transactions()` returning the shared `Balance`/`Holding`/
+  `Transaction` models. There are no write/transfer/payment/trade methods
+  by design — an adapter cannot move money. `as_snapshot()` builds a
+  `NetWorthSnapshot` from balances (holdings excluded to avoid
+  double-counting the brokerage balance).
+- **Reference adapters:** `PlaidAdapter` (bank/brokerage:
+  `/accounts/balance/get`, `/transactions/sync`, `/investments/holdings/get`)
+  and `CoinbaseAdapter` (Advanced Trade: `/accounts`, fills as transactions),
+  both stdlib-only HTTP, both injectable-client for fixture tests.
+- **Defaults:** `SampleDataAdapter` wraps the bundled sample data and stays
+  the default everywhere — `make check`, `make demo`, and the dashboard run
+  with zero credentials.
+- **Local-only loading:** `money_tracker/data_source.py` — `get_adapter()`
+  picks the source from `~/.commons-money-tracker/config.json`
+  (override: `MONEY_TRACKER_CONFIG`); secrets live in environment variables
+  ONLY, read lazily at adapter construction, never at import time. The
+  config loader REFUSES any key that looks like a secret. `.gitignore`
+  blocks `local_config.*`, `*-live.*`, and `.commons-money-tracker/`.
+- **Dashboard switch:** `build_dashboard(..., data_source="sample")` labels
+  the payload with its source; `demo.py --data-source plaid|coinbase`
+  runs the dashboard off a live-local adapter (fails safe with a message
+  when unconfigured).
+- **Golden rule still applies:** no real balances, holdings, spending,
+  accounts, or credentials in the repo, branches, PRs, or the sheet —
+  reviewer checklist (M7) item "Sample data only" covers M10 fixtures too.
 
 ### v0.2 additions (`feature/transfers-dedup-snapshots`)
 
