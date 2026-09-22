@@ -24,6 +24,21 @@ from money_tracker.budget import BudgetPlanner, default_limits
 from money_tracker.recurring import detect_recurring, CADENCE_BANDS
 from money_tracker.payroll import detect_payroll, payroll_ytd
 from money_tracker.dashboard import build_dashboard
+from money_tracker.adapters import (
+    AdapterError,
+    AdapterNotConfiguredError,
+    Balance,
+    CoinbaseAdapter,
+    Holding,
+    PlaidAdapter,
+    ReadOnlyAdapter,
+    SampleDataAdapter,
+)
+from money_tracker.data_source import (
+    get_adapter,
+    load_local_config,
+    config_path,
+)
 
 __version__ = "0.4.0"
 __all__ = [
@@ -39,4 +54,8 @@ __all__ = [
     "detect_recurring", "CADENCE_BANDS",
     "detect_payroll", "payroll_ytd",
     "build_dashboard",
+    "AdapterError", "AdapterNotConfiguredError",
+    "Balance", "Holding", "ReadOnlyAdapter",
+    "SampleDataAdapter", "PlaidAdapter", "CoinbaseAdapter",
+    "get_adapter", "load_local_config", "config_path",
 ]

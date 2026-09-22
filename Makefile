@@ -5,6 +5,7 @@ lint:
 
 check: lint
 	python3 tests/test_core.py
+	python3 tests/test_adapters.py
 
 demo:
 	python3 demo.py
